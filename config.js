@@ -1,3 +1,4 @@
+export default config =
 {
   "googleCloud": {
     "api": "https://vision.googleapis.com/v1/images:annotate?key=",
