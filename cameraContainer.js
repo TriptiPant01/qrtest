@@ -1,14 +1,7 @@
-import React, {PureComponent} from 'react';
-import {
-  AppRegistry,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import {RNCamera} from 'react-native-camera';
-
-class ExampleApp extends PureComponent {
+import React, {Component} from 'react';
+import Scan from './App';
+import config from './config';
+class CameraContainer extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -20,67 +13,22 @@ class ExampleApp extends PureComponent {
       googleVisionDetetion: undefined,
     };
   }
-  render() {
-    return (
-      <View style={styles.container}>
-        <RNCamera
-          ref={ref => {
-            this.camera = ref;
-          }}
-          style={styles.preview}
-          type={RNCamera.Constants.Type.back}
-          // flashM
-
-          ode={RNCamera.Constants.FlashMode.on}
-          androidCameraPermissionOptions={{
-            title: 'Permission to use camera',
-            message: 'We need your permission to use your camera',
-            buttonPositive: 'Ok',
-            buttonNegative: 'Cancel',
-          }}
-          androidRecordAudioPermissionOptions={{
-            title: 'Permission to use audio recording',
-            message: 'We need your permission to use your audio',
-            buttonPositive: 'Ok',
-            buttonNegative: 'Cancel',
-          }}
-          onGoogleVisionBarcodesDetected={({barcodes}) => {
-            console.log(barcodes);
-          }}
-        />
-        <View style={{flex: 0, flexDirection: 'row', justifyContent: 'center'}}>
-          <TouchableOpacity
-            onPress={this.takePicture.bind(this)}
-            style={styles.capture}>
-            <Text style={{fontSize: 14}}> SNAP </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
 
   takePicture = async value => {
-    if (this.camera) {
-      console.log(this.camera);
+    if (value) {
       const options = {quality: 0.5, base64: true};
-      const data = await this.camera.takePictureAsync(options);
-      console.log(data.uri);
+      const data = await value.takePictureAsync(options);
+      console.log(data);
+      this.setState(
+        {
+          cameraResult: true,
+          result: data.base64,
+          camera: false,
+        },
+        () => this.callGoogleVIsionApi(this.state.result),
+      );
+      this.setState({loading: true});
     }
-    // if (value) {
-    //   const options = {quality: 0.5, base64: true};
-    //   console.log(options);
-    //   const data = await value.takePictureAsync(options);
-    //   console.log(data);
-    //   this.setState(
-    //     {
-    //       cameraResult: true,
-    //       result: data.base64,
-    //       camera: false,
-    //     },
-    //     () => this.callGoogleVIsionApi(this.state.result),
-    //   );
-    //   this.setState({loading: true});
-    // }
   };
   callGoogleVIsionApi = async base64 => {
     let googleVisionRes = await fetch(
@@ -93,7 +41,18 @@ class ExampleApp extends PureComponent {
               image: {
                 content: base64,
               },
-              features: [{type: 'TEXT_DETECTION', maxResults: 5}],
+              features: [
+                {type: 'LABEL_DETECTION', maxResults: 10},
+                {type: 'LANDMARK_DETECTION', maxResults: 5},
+                {type: 'FACE_DETECTION', maxResults: 5},
+                {type: 'LOGO_DETECTION', maxResults: 5},
+                {type: 'TEXT_DETECTION', maxResults: 5},
+                {type: 'DOCUMENT_TEXT_DETECTION', maxResults: 5},
+                {type: 'SAFE_SEARCH_DETECTION', maxResults: 5},
+                {type: 'IMAGE_PROPERTIES', maxResults: 5},
+                {type: 'CROP_HINTS', maxResults: 5},
+                {type: 'WEB_DETECTION', maxResults: 5},
+              ],
             },
           ],
         }),
@@ -115,41 +74,40 @@ class ExampleApp extends PureComponent {
       .catch(error => {
         console.log(error);
       });
-    activeCamera = () => {
-      this.setState({
-        camera: true,
-      });
-    };
-    clickAgain = () => {
-      this.setState({
-        camera: true,
-        googleVisionDetetion: false,
-        loading: false,
-      });
-    };
   };
+  activeCamera = () => {
+    this.setState({
+      camera: true,
+    });
+  };
+  clickAgain = () => {
+    this.setState({
+      camera: true,
+      googleVisionDetetion: false,
+      loading: false,
+    });
+  };
+  render() {
+    const {
+      camera,
+      cameraResult,
+      result,
+      googleVisionDetetion,
+      loading,
+    } = this.state;
+    return (
+      <Scan
+        camera={camera}
+        cameraResult={cameraResult}
+        result={result}
+        clickAgain={this.clickAgain}
+        takePicture={value => this.takePicture(value)}
+        activeCamera={this.activeCamera}
+        googleVisionDetetion={googleVisionDetetion}
+        loading={loading}
+      />
+    );
+  }
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    flexDirection: 'column',
-    backgroundColor: 'black',
-  },
-  preview: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  capture: {
-    flex: 0,
-    backgroundColor: '#fff',
-    borderRadius: 5,
-    padding: 15,
-    paddingHorizontal: 20,
-    alignSelf: 'center',
-    margin: 20,
-  },
-});
-
-export default ExampleApp;
+export default CameraContainer;
